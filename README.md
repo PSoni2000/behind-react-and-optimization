@@ -1,70 +1,155 @@
-# Getting Started with Create React App
+# Notes
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+When State changes of a component that component re-runs.
 
-## Available Scripts
+To increase performance React only updates Real DOM when there is change in previous Virtual DOM & updated Virtual DOM.
 
-In the project directory, you can run:
+Even though Real DOM not changes code inside child components still executed. (like console.log() )
 
-### `npm start`
+to prevent child components reload we can use React.memo()
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```
+import React from 'react';
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+import MyParagraph from './MyParagraph';
 
-### `npm test`
+const DemoOutput = (props) => {
+  console.log('DemoOutput RUNNING');
+  return <MyParagraph>{props.show ? 'This is new!' : ''}</MyParagraph>;
+};
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+export default React.memo(DemoOutput);
+```
 
-### `npm run build`
+React.memo() prevents re-execution of a component by matching its previous props with new props. and if the props are same it returns the previous stored returned value.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+but React.memo() comes with a cost of using memory to stored returned values & matching previous & new props values. Which sometimes not worth to use in small application with small DOM tree.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Remember! - by default React.memo() only work with Primitive value datatype. [Read More](https://www.w3schools.com/react/react_usecallback.asp)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+[Reference vs Primitive Values Article](https://academind.com/tutorials/reference-vs-primitive-values)
 
-### `npm run eject`
+To make it work with non Primitive values(like function, array, object, etc) we have to use **useCallback()** Hook.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## useCallback() -
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+useCallback() is a React Hook That lets you cache a function definition between re-renders.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+**Syntax** -
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```
+const memoizedCallback = useCallback(() => {
+        doSomething(a, b);
+    }, [a, b] // here [a, b] is a dependency array where a & b are dependencies.
+);
+```
 
-## Learn More
+**Example 1** - without dependency
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```
+function App() {
+  const [showParagraph, setShowParagraph] = useState(false);
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+  console.log('APP RUNNING');
 
-### Code Splitting
+  const toggleParagraphHandler = useCallback(() => {
+    setShowParagraph((prevShowParagraph) => !prevShowParagraph);
+  }, []);
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+  return (
+    <div className="app">
+      <h1>Hi there!</h1>
+      <DemoOutput show={false} />
+      <Button onClick={toggleParagraphHandler}>Toggle Paragraph!</Button>
+    </div>
+  );
+}
+```
 
-### Analyzing the Bundle Size
+**Example 2** - with dependency
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```
+function App() {
+  const [showParagraph, setShowParagraph] = useState(false);
+  const [allowToggle, setAllowToggle] = useState(false);
 
-### Making a Progressive Web App
+  console.log('APP RUNNING');
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+  const toggleParagraphHandler = useCallback(() => {
+    if (allowToggle) {
+      setShowParagraph((prevShowParagraph) => !prevShowParagraph);
+    }
+  }, [allowToggle]);
 
-### Advanced Configuration
+  const allowToggleHandler = () => {
+    setAllowToggle(true);
+  };
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+  return (
+    <div className="app">
+      <h1>Hi there!</h1>
+      <DemoOutput show={showParagraph} />
+      <Button onClick={allowToggleHandler}>Allow Toggling</Button>
+      <Button onClick={toggleParagraphHandler}>Toggle Paragraph!</Button>
+    </div>
+  );
+}
+```
 
-### Deployment
+**Usage** -
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+1. [Skipping re-rendering of components](https://beta.reactjs.org/reference/react/useCallback#skipping-re-rendering-of-components)
 
-### `npm run build` fails to minify
+2. [Updating state from a memoized callback](https://beta.reactjs.org/reference/react/useCallback#updating-state-from-a-memoized-callback)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+3.[Preventing an Effect from firing too often](https://beta.reactjs.org/reference/react/useCallback#preventing-an-effect-from-firing-too-often)
+
+4. [Optimizing a custom Hook](https://beta.reactjs.org/reference/react/useCallback#optimizing-a-custom-hook)
+
+## useMemo -
+
+useMemo is a React Hook that lets you cache the result of a calculation between re-renders.
+
+The React useMemo Hook returns a memoized value.
+
+_Think of memoization as caching a value so that it does not need to be recalculated._
+
+The useMemo Hook only runs when one of its dependencies update.
+
+This can improve performance.
+
+_The useMemo and useCallback Hooks are similar. The main difference is that useMemo returns a memoized value and useCallback returns a memoized function. You can learn more about useCallback in the useCallback chapter._
+
+**Syntax** -
+
+```
+const cachedValue = useMemo(calculateValue, dependencies)
+```
+
+Call useMemo at the top level of your component to cache a calculation between re-renders:
+
+```
+import { useMemo } from 'react';
+
+function TodoList({ todos, tab }) {
+  const visibleTodos = useMemo(
+    () => filterTodos(todos, tab),
+    [todos, tab]
+  );
+  // ...
+}
+```
+
+**\*Usage** -
+
+1. Skipping expensive recalculations
+   To cache a calculation between re-renders, wrap it in a useMemo call at the top level of your component:
+
+```
+import { useMemo } from 'react';
+
+function TodoList({ todos, tab, theme }) {
+  const visibleTodos = useMemo(() => filterTodos(todos, tab), [todos, tab]);
+  // ...
+}
+```
